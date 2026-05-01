@@ -1,5 +1,5 @@
 import os
-import shutil
+import uuid
 from pathlib import Path
 from typing import List
 
@@ -15,7 +15,6 @@ from app.models.user import User
 from app.schemas.upload import UploadResponse, UploadStatusResponse
 from app.security import get_current_user
 from app.services.file_handler import FileHandler
-from app.utils.helpers import generate_unique_filename, ensure_upload_dir
 
 router = APIRouter()
 
@@ -37,7 +36,7 @@ async def _save_upload(
     if exp.owner_id != current_user.id and current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Access denied")
 
-    # Validate extension
+    # Validate extension against known allowlist for this file_type
     handler = FileHandler()
     if not handler.validate_extension(file.filename, file_type):
         raise HTTPException(
@@ -45,18 +44,19 @@ async def _save_upload(
             detail=f"Invalid file type for {file_type} upload",
         )
 
-    # Save file
-    upload_dir = ensure_upload_dir(
-        os.path.join(settings.UPLOAD_DIR, str(experiment_id), file_type),
-        base_dir=settings.UPLOAD_DIR,
-    )
-    unique_name = generate_unique_filename(file.filename)
-    file_path = (upload_dir / unique_name).resolve()
+    # Build upload directory entirely from trusted (non-user) sources:
+    #   - settings.UPLOAD_DIR: server configuration
+    #   - exp.id: database-returned integer (not raw form input)
+    #   - file_type: hardcoded per route, not user-supplied
+    upload_base = Path(settings.UPLOAD_DIR).resolve()
+    upload_dir = (upload_base / str(exp.id) / file_type).resolve()
+    if not str(upload_dir).startswith(str(upload_base)):
+        raise HTTPException(status_code=400, detail="Invalid upload path")
+    upload_dir.mkdir(parents=True, exist_ok=True)
 
-    # Guard against path traversal
-    base = Path(settings.UPLOAD_DIR).resolve()
-    if not str(file_path).startswith(str(base)):
-        raise HTTPException(status_code=400, detail="Invalid file path")
+    # Filename is a pure UUID — no user-supplied data in the stored path
+    unique_name = str(uuid.uuid4())
+    file_path = upload_dir / unique_name
 
     file_bytes = await file.read()
     file_size = len(file_bytes)
@@ -65,7 +65,7 @@ async def _save_upload(
         f.write(file_bytes)
 
     record = FileUpload(
-        experiment_id=experiment_id,
+        experiment_id=exp.id,
         filename=unique_name,
         original_filename=file.filename,
         file_type=file_type,

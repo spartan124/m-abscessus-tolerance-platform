@@ -25,18 +25,27 @@ MAX_FILE_SIZES = {
 }
 
 
-def generate_unique_filename(original_filename: str) -> str:
-    """Generate a UUID-based filename preserving extension."""
-    ext = Path(original_filename).suffix.lower()
-    return f"{uuid.uuid4()}{ext}"
+def generate_unique_filename() -> str:
+    """Generate a UUID-based filename with no user-supplied data."""
+    return str(uuid.uuid4())
 
 
-def ensure_upload_dir(upload_dir: str, base_dir: Optional[str] = None) -> Path:
-    path = Path(upload_dir).resolve()
-    if base_dir is not None:
-        base = Path(base_dir).resolve()
-        if not str(path).startswith(str(base)):
-            raise ValueError(f"Upload path escapes base directory: {path}")
+def ensure_upload_dir(upload_base: str, *sub_parts: str) -> Path:
+    """Create and return a subdirectory under upload_base.
+
+    All sub_parts must be plain names with no path separators.
+    Raises ValueError if the resolved path escapes the base.
+    """
+    base = Path(upload_base).resolve()
+    # Restrict each sub-part to alphanumeric + hyphen/underscore/dot
+    import re as _re
+    safe = _re.compile(r'^[a-zA-Z0-9_\-]+$')
+    for part in sub_parts:
+        if not safe.match(str(part)):
+            raise ValueError(f"Unsafe path component: {part!r}")
+    path = (base.joinpath(*sub_parts)).resolve()
+    if not str(path).startswith(str(base)):
+        raise ValueError(f"Upload path escapes base directory: {path}")
     path.mkdir(parents=True, exist_ok=True)
     return path
 
