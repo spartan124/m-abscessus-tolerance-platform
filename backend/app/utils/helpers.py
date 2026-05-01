@@ -31,8 +31,12 @@ def generate_unique_filename(original_filename: str) -> str:
     return f"{uuid.uuid4()}{ext}"
 
 
-def ensure_upload_dir(upload_dir: str) -> Path:
-    path = Path(upload_dir)
+def ensure_upload_dir(upload_dir: str, base_dir: Optional[str] = None) -> Path:
+    path = Path(upload_dir).resolve()
+    if base_dir is not None:
+        base = Path(base_dir).resolve()
+        if not str(path).startswith(str(base)):
+            raise ValueError(f"Upload path escapes base directory: {path}")
     path.mkdir(parents=True, exist_ok=True)
     return path
 

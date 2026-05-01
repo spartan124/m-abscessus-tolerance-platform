@@ -47,10 +47,16 @@ async def _save_upload(
 
     # Save file
     upload_dir = ensure_upload_dir(
-        os.path.join(settings.UPLOAD_DIR, str(experiment_id), file_type)
+        os.path.join(settings.UPLOAD_DIR, str(experiment_id), file_type),
+        base_dir=settings.UPLOAD_DIR,
     )
     unique_name = generate_unique_filename(file.filename)
-    file_path = upload_dir / unique_name
+    file_path = (upload_dir / unique_name).resolve()
+
+    # Guard against path traversal
+    base = Path(settings.UPLOAD_DIR).resolve()
+    if not str(file_path).startswith(str(base)):
+        raise HTTPException(status_code=400, detail="Invalid file path")
 
     file_bytes = await file.read()
     file_size = len(file_bytes)

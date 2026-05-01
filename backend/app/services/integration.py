@@ -139,7 +139,7 @@ class IntegrationService:
 
         except Exception as e:
             logger.error(f"Correlation analysis error: {e}")
-            correlation_data["error"] = str(e)
+            correlation_data["error"] = "Correlation analysis failed"
 
         return correlation_data
 
@@ -190,4 +190,4 @@ class IntegrationService:
             }
         except Exception as e:
             logger.error(f"Pathway enrichment error: {e}")
-            return {"pathways": [], "error": str(e)}
+            return {"pathways": [], "error": "Pathway enrichment analysis failed"}
