@@ -1,5 +1,6 @@
 import os
 import uuid
+import re
 import json
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -37,11 +38,9 @@ def ensure_upload_dir(upload_base: str, *sub_parts: str) -> Path:
     Raises ValueError if the resolved path escapes the base.
     """
     base = Path(upload_base).resolve()
-    # Restrict each sub-part to alphanumeric + hyphen/underscore/dot
-    import re as _re
-    safe = _re.compile(r'^[a-zA-Z0-9_\-]+$')
+    allowed_chars_pattern = re.compile(r'^[a-zA-Z0-9_\-]+$')
     for part in sub_parts:
-        if not safe.match(str(part)):
+        if not allowed_chars_pattern.match(str(part)):
             raise ValueError(f"Unsafe path component: {part!r}")
     path = (base.joinpath(*sub_parts)).resolve()
     if not str(path).startswith(str(base)):

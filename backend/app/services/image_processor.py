@@ -36,7 +36,7 @@ class ImageProcessor:
             return self._mock_tiff_metadata(file_path)
         except Exception as e:
             logger.error(f"Error extracting TIFF metadata: {e}")
-            return {"error": str(e)}
+            return {"error": "TIFF metadata extraction failed"}
 
     def extract_hdf5_metadata(self, file_path: str) -> Dict[str, Any]:
         """Extract metadata from HDF5 file."""
@@ -53,7 +53,7 @@ class ImageProcessor:
             return self._mock_hdf5_metadata(file_path)
         except Exception as e:
             logger.error(f"Error extracting HDF5 metadata: {e}")
-            return {"error": str(e)}
+            return {"error": "HDF5 metadata extraction failed"}
 
     def calculate_cell_viability(
         self,
