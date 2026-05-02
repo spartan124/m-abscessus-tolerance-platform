@@ -58,9 +58,14 @@ export async function getScatter(id: number): Promise<ScatterData[]> {
   return data;
 }
 
+interface ImagesResponse {
+  images: ImageMeta[];
+  total: number;
+}
+
 export async function getImages(id: number): Promise<ImageMeta[]> {
-  const { data } = await api.get<ImageMeta[]>(`/visualization/images/${id}`);
-  return data;
+  const { data } = await api.get<ImagesResponse>(`/visualization/images/${id}`);
+  return data.images;
 }
 
 export async function getNetwork(id: number): Promise<NetworkData> {
